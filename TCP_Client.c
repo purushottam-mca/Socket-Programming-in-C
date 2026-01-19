@@ -1,4 +1,4 @@
-/* Name - Purushottam Kumar (MCA-1st Sem Regular), Roll - 2041
+/* Author - Purushottam Kumar (MCA-1st Sem Regular)
 
 	Normally Client side following thing occurs :
 	1. Create a socket
@@ -8,10 +8,24 @@
 
 Initialise Winsock.h Because it is running on windows OS.  */
 
-#include<stdio.h>
+#include <stdio.h>
+
+#ifdef _WIN32
 #include<winsock2.h>
 #pragma comment(lib,"ws2_32.lib") // The library file to use winsock functions.
 #pragma warning(disable : 4996)   // To avoid warnings in Visual STudio
+#else
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h> // for close
+#include <errno.h>
+
+// Define types and constants for Linux to match Windows names
+typedef int SOCKET;
+#define INVALID_SOCKET -1
+#define SOCKET_ERROR -1
+#define closesocket(s) close(s)
+#endif
 #define MAX 200
 #define PORT 5050
 
@@ -20,10 +34,13 @@ void SendToServer(SOCKET S);
 
 int main(int argc, char *argv[])
 {
+#ifdef _WIN32
 	WSADATA wsa;
+#endif
 	SOCKET sockfd;    // socket descriptor value
 	struct sockaddr_in server;  // sin_family = AF_INET or AF_INET6
 
+#ifdef _WIN32
 	printf("\nCLIENT>>> Initialising Winsock...\n");
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 	{
@@ -31,6 +48,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	printf("\nCLIENT>>> WInsock Succesfully Initialised.\n");
+#else
+	// No initialization is needed on Linux
+#endif
 
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
 	{	// Address Family : (IPv4) and SOCK_STREAM (means TCP protocol), protocol = 0
@@ -39,13 +59,18 @@ int main(int argc, char *argv[])
 	}
 	printf("\nCLIENT>>> Socket Successfully Created.\n");
 
-  // Connect to Server  ( IP address and port number )
+    // Connect to Server  ( IP address and port number )
 	server.sin_addr.s_addr = inet_addr("127.0.0.1"); // Ip address of localhost
 	server.sin_family = AF_INET;  // IPv4
 	server.sin_port = htons(PORT);  // Port No 8080
 	if (connect(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0)
 	{
-		puts("\nSERVER>>> Server is not available.\n");
+		puts("\nCLIENT>>> Server is not available or connection failed.\n");
+#ifdef _WIN32
+		printf("Error code: %d\n", WSAGetLastError());
+#else
+		perror("Connect error");
+#endif
 		return 1;
 	}
 	puts("\nCLIENT>>> Successfully Connected to Server.");
@@ -156,7 +181,9 @@ void SendToServer(SOCKET S)
 		case 11: // Exit program
 			send(S, "011", 4, 0);
 			closesocket(S);
+#ifdef _WIN32
 			WSACleanup();
+#endif
 			printf("\nClient>>> Disconnected\n\n");
 			return;
 			break;
