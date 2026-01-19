@@ -53,8 +53,12 @@ int main(int argc, char *argv[])
 #endif
 
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
-	{	// Address Family : (IPv4) and SOCK_STREAM (means TCP protocol), protocol = 0
+	{	// Address Family : IPv4 , type = SOCK_STREAM (TCP protocol) , protocol = 0
+#ifdef _WIN32
 		printf("Could not create socket : %d \n", WSAGetLastError());
+#else
+		perror("Could not create socket");
+#endif
 		return 1;
 	}
 	printf("\nCLIENT>>> Socket Successfully Created.\n");
